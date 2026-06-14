@@ -30,6 +30,10 @@
 	<array>
 		<string>tel</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>PhoneCall needs access to your camera for video calls.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PhoneCall needs access to your microphone for audio calls.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

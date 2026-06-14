@@ -3,6 +3,7 @@ class User {
   final String name;
   final String email;
   final String? phone;
+  final String? virtualNumber;
   final String? token;
 
   User({
@@ -10,15 +11,17 @@ class User {
     required this.name,
     required this.email,
     this.phone,
+    this.virtualNumber,
     this.token,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: (json['id'] ?? json['_id'] ?? '').toString(),
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'],
+      virtualNumber: json['virtual_number'],
       token: json['token'],
     );
   }
@@ -29,6 +32,7 @@ class User {
       'name': name,
       'email': email,
       'phone': phone,
+      'virtual_number': virtualNumber,
     };
   }
 }

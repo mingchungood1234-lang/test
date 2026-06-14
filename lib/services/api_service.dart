@@ -6,9 +6,10 @@ import '../models/user.dart';
 class ApiService {
   static String get _baseUrl => Env.apiBaseUrl;
 
-  static Map<String, String> get _headers => {
+  static Map<String, String> _authHeaders(String? token) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
       };
 
   /// Register a new user
@@ -21,7 +22,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/register'),
-        headers: _headers,
+        headers: _authHeaders(null),
         body: jsonEncode({
           'name': name,
           'email': email,
@@ -61,7 +62,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/login'),
-        headers: _headers,
+        headers: _authHeaders(null),
         body: jsonEncode({
           'email': email,
           'password': password,
@@ -96,10 +97,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/auth/profile'),
-        headers: {
-          ..._headers,
-          'Authorization': 'Bearer $token',
-        },
+        headers: _authHeaders(token),
       );
 
       final data = jsonDecode(response.body);
@@ -113,6 +111,38 @@ class ApiService {
         return {
           'success': false,
           'message': data['message'] ?? 'Failed to fetch profile',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}',
+      };
+    }
+  }
+
+  /// Get all users (contacts list)
+  static Future<Map<String, dynamic>> getUsers(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/users'),
+        headers: _authHeaders(token),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final users = (data['users'] as List)
+            .map((u) => User.fromJson(u))
+            .toList();
+        return {
+          'success': true,
+          'users': users,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Failed to fetch users',
         };
       }
     } catch (e) {

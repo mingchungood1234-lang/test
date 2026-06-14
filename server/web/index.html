@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhoneCall - Web Client</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #fff; min-height: 100vh; }
+
+    /* Auth screens */
+    .auth-container { max-width: 400px; margin: 80px auto; padding: 0 20px; }
+    .auth-card { background: #1a1a2e; border-radius: 16px; padding: 40px 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .auth-card h1 { text-align: center; margin-bottom: 8px; font-size: 24px; }
+    .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 32px; font-size: 14px; }
+    .auth-card .logo { width: 72px; height: 72px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 32px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 12px 16px; background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; color: #fff; font-size: 15px; outline: none; transition: border-color 0.2s; }
+    .form-group input:focus { border-color: #6c5ce7; }
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,92,231,0.4); }
+    .btn-secondary { background: transparent; color: #6c5ce7; border: 1px solid #6c5ce7; margin-top: 12px; }
+    .btn-secondary:hover { background: rgba(108,92,231,0.1); }
+    .switch-link { text-align: center; margin-top: 16px; color: #888; font-size: 14px; }
+    .switch-link a { color: #6c5ce7; cursor: pointer; text-decoration: none; }
+    .error-msg { color: #ff6b6b; font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+    /* Main app */
+    .app-container { display: none; max-width: 480px; margin: 0 auto; padding: 20px; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; margin-bottom: 16px; border-bottom: 1px solid #2a2a4a; }
+    .app-header h2 { font-size: 20px; }
+    .user-info { font-size: 12px; color: #888; text-align: right; }
+    .user-info .vn { color: #6c5ce7; font-weight: 600; font-size: 14px; }
+
+    /* Contacts list */
+    .search-bar { width: 100%; padding: 12px 16px; background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; color: #fff; font-size: 14px; outline: none; margin-bottom: 16px; }
+    .search-bar:focus { border-color: #6c5ce7; }
+    .contact-list { max-height: calc(100vh - 280px); overflow-y: auto; }
+    .contact-item { display: flex; align-items: center; padding: 14px 16px; background: #1a1a2e; border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s; }
+    .contact-item:hover { background: #16213e; }
+    .contact-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #6c5ce7, #a29bfe); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; margin-right: 14px; flex-shrink: 0; }
+    .contact-details { flex: 1; }
+    .contact-name { font-weight: 600; font-size: 15px; }
+    .contact-vn { font-size: 12px; color: #6c5ce7; margin-top: 2px; }
+    .contact-actions { display: flex; gap: 8px; }
+    .call-btn { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
+    .call-btn-audio { background: #00b894; color: #fff; }
+    .call-btn-audio:hover { background: #00a381; }
+    .call-btn-video { background: #0984e3; color: #fff; }
+    .call-btn-video:hover { background: #0873c7; }
+
+    /* Call screen */
+    .call-screen { display: none; position: fixed; inset: 0; background: #0f0f0f; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+    .call-screen.active { display: flex; }
+    .call-avatar { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #6c5ce7, #a29bfe); display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; margin-bottom: 24px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .call-name { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+    .call-status { color: #888; font-size: 16px; margin-bottom: 32px; }
+    .call-controls { display: flex; gap: 24px; }
+    .ctrl-btn { width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.2s; }
+    .ctrl-btn.mute { background: #2a2a4a; color: #fff; }
+    .ctrl-btn.mute.active { background: #6c5ce7; }
+    .ctrl-btn.end { background: #ff6b6b; color: #fff; width: 72px; height: 72px; font-size: 28px; }
+    .ctrl-btn.end:hover { background: #ee5a5a; }
+    .ctrl-btn.accept { background: #00b894; color: #fff; width: 72px; height: 72px; font-size: 28px; }
+    .ctrl-btn.decline { background: #ff6b6b; color: #fff; }
+    .video-container { position: fixed; inset: 0; z-index: 99; }
+    .video-container video { width: 100%; height: 100%; object-fit: cover; }
+    .pip-video { position: fixed; top: 20px; right: 20px; width: 160px; height: 120px; border-radius: 12px; overflow: hidden; border: 2px solid #fff; z-index: 101; }
+    .pip-video video { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Online indicator */
+    .online-dot { width: 10px; height: 10px; background: #00b894; border-radius: 50%; display: inline-block; margin-left: 6px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="auth-container">
+    <div class="auth-card">
+      <div class="logo">📞</div>
+      <h1>Welcome Back</h1>
+      <p class="subtitle">Sign in to make calls</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary" onclick="login()">Sign In</button>
+      <div class="switch-link">Don't have an account? <a onclick="showRegister()">Sign Up</a></div>
+      <div id="loginError" class="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- Register Screen -->
+  <div id="registerScreen" class="auth-container" style="display:none">
+    <div class="auth-card">
+      <div class="logo">📞</div>
+      <h1>Create Account</h1>
+      <p class="subtitle">Get your virtual phone number</p>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="Min 6 characters">
+      </div>
+      <button class="btn btn-primary" onclick="register()">Create Account</button>
+      <div class="switch-link">Already have an account? <a onclick="showLogin()">Sign In</a></div>
+      <div id="regError" class="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp" class="app-container">
+    <div class="app-header">
+      <h2>📞 PhoneCall</h2>
+      <div class="user-info">
+        <div class="vn" id="myVirtualNumber"></div>
+        <div id="myName"></div>
+      </div>
+    </div>
+    <input type="text" class="search-bar" id="searchInput" placeholder="Search by name, email, or virtual number..." oninput="searchUsers()">
+    <div class="contact-list" id="contactList"></div>
+    <button class="btn btn-secondary" style="margin-top:16px" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Call Screen -->
+  <div id="callScreen" class="call-screen">
+    <div id="callAvatar" class="call-avatar">?</div>
+    <div id="callName" class="call-name"></div>
+    <div id="callStatus" class="call-status"></div>
+    <div class="call-controls" id="callControls">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // ========== Config ==========
+    const API_BASE = window.location.origin + '/api';
+    const WS_URL = window.location.origin;
+
+    // ========== State ==========
+    let currentUser = null;
+    let authToken = null;
+    let socket = null;
+    let peerConnection = null;
+    let localStream = null;
+    let remoteStream = null;
+    let currentCall = null;
+    let allUsers = [];
+
+    // ========== Auth ==========
+    function showLogin() {
+      document.getElementById('loginScreen').style.display = '';
+      document.getElementById('registerScreen').style.display = 'none';
+    }
+    function showRegister() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('registerScreen').style.display = '';
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errEl = document.getElementById('loginError');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.message; errEl.style.display = ''; return; }
+        authToken = data.token;
+        currentUser = data.user;
+        startApp();
+      } catch (e) {
+        errEl.textContent = 'Network error'; errEl.style.display = '';
+      }
+    }
+
+    async function register() {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const errEl = document.getElementById('regError');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.message; errEl.style.display = ''; return; }
+        authToken = data.token;
+        currentUser = data.user;
+        startApp();
+      } catch (e) {
+        errEl.textContent = 'Network error'; errEl.style.display = '';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('currentUser');
+      authToken = null;
+      currentUser = null;
+      if (socket) socket.disconnect();
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('loginScreen').style.display = '';
+    }
+
+    // ========== App Init ==========
+    function startApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('registerScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = '';
+
+      document.getElementById('myName').textContent = currentUser.name;
+      document.getElementById('myVirtualNumber').textContent = currentUser.virtual_number || 'No number';
+
+      localStorage.setItem('authToken', authToken);
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+      connectSocket();
+      loadUsers();
+    }
+
+    // ========== Socket.IO ==========
+    function connectSocket() {
+      socket = io(WS_URL);
+
+      socket.on('connect', () => {
+        socket.emit('register', { userId: String(currentUser.id), platform: 'web' });
+      });
+
+      socket.on('incoming_call', (data) => {
+        currentCall = data;
+        showIncomingCall(data);
+      });
+
+      socket.on('call_accepted', (data) => {
+        document.getElementById('callStatus').textContent = 'Connecting...';
+        createOffer();
+      });
+
+      socket.on('call_rejected', (data) => {
+        endCallUI(data.reason || 'Call declined');
+      });
+
+      socket.on('call_ended', () => {
+        hangup();
+      });
+
+      socket.on('signal', async (data) => {
+        const { signal } = data;
+        if (signal.type === 'offer') {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          socket.emit('signal', { to: data.from, signal: { type: 'answer', sdp: answer.sdp } });
+        } else if (signal.type === 'answer') {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        } else if (signal.type === 'candidate' && signal.candidate) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal));
+        }
+      });
+    }
+
+    // ========== Users ==========
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_BASE}/users`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        const data = await res.json();
+        allUsers = (data.users || []).filter(u => u.id !== currentUser.id);
+        renderContacts(allUsers);
+      } catch (e) {
+        console.error('Failed to load users:', e);
+      }
+    }
+
+    function searchUsers() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      if (!q) return renderContacts(allUsers);
+      const filtered = allUsers.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.virtual_number && u.virtual_number.includes(q))
+      );
+      renderContacts(filtered);
+    }
+
+    function renderContacts(users) {
+      const list = document.getElementById('contactList');
+      list.innerHTML = users.map(u => `
+        <div class="contact-item">
+          <div class="contact-avatar">${u.name[0].toUpperCase()}</div>
+          <div class="contact-details">
+            <div class="contact-name">${u.name} <span class="online-dot" id="online-${u.id}" style="display:none"></span></div>
+            <div class="contact-vn">${u.virtual_number || 'No number'}</div>
+          </div>
+          <div class="contact-actions">
+            <button class="call-btn call-btn-audio" onclick="startCall(${u.id}, '${u.name.replace(/'/g, "\\'")}', 'audio')" title="Audio Call">📞</button>
+            <button class="call-btn call-btn-video" onclick="startCall(${u.id}, '${u.name.replace(/'/g, "\\'")}', 'video')" title="Video Call">📹</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ========== Call Logic ==========
+    const ICE_SERVERS = { iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ]};
+
+    async function startCall(targetId, targetName, callType) {
+      currentCall = { callerId: String(currentUser.id), callerName: currentUser.name, targetId: String(targetId), callType };
+
+      showCallScreen(targetName, 'Calling...', callType);
+      await initMedia(callType === 'video');
+      createPeerConnection_();
+
+      socket.emit('call_user', {
+        callerId: String(currentUser.id),
+        callerName: currentUser.name,
+        targetId: String(targetId),
+        callType,
+      });
+    }
+
+    function showIncomingCall(data) {
+      // Store callerId as targetId so endCall knows who to signal
+      currentCall = { ...currentCall, callerId: data.callerId, callerName: data.callerName, callType: data.callType, targetId: data.callerId };
+      showCallScreen(data.callerName, 'Incoming call...', data.callType, true);
+    }
+
+    function showCallScreen(name, status, callType, isIncoming = false) {
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('callScreen').classList.add('active');
+      document.getElementById('callName').textContent = name;
+      document.getElementById('callStatus').textContent = status;
+      document.getElementById('callAvatar').textContent = name[0]?.toUpperCase() || '?';
+
+      const controls = document.getElementById('callControls');
+      if (isIncoming) {
+        controls.innerHTML = `
+          <button class="ctrl-btn decline" onclick="rejectCall()">✕</button>
+          <button class="ctrl-btn accept" onclick="acceptCall()">📞</button>
+        `;
+      } else {
+        controls.innerHTML = `
+          <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
+          <button class="ctrl-btn end" onclick="endCall()">📞</button>
+        `;
+      }
+    }
+
+    async function acceptCall() {
+      document.getElementById('callStatus').textContent = 'Connecting...';
+      await initMedia(currentCall.callType === 'video');
+      createPeerConnection_();
+
+      socket.emit('accept_call', {
+        callerId: currentCall.callerId,
+        targetId: String(currentUser.id),
+      });
+    }
+
+    function rejectCall() {
+      socket.emit('reject_call', {
+        callerId: currentCall.callerId,
+        targetId: String(currentUser.id),
+      });
+      endCallUI('Call declined');
+    }
+
+    function endCall() {
+      socket.emit('end_call', {
+        callerId: currentCall.callerId || String(currentUser.id),
+        targetId: currentCall.targetId,
+      });
+      hangup();
+    }
+
+    function endCallUI(msg) {
+      document.getElementById('callStatus').textContent = msg;
+      setTimeout(() => {
+        hangup();
+      }, 1500);
+    }
+
+    // ========== WebRTC ==========
+    async function initMedia(video) {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+      } catch (e) {
+        // Fallback to audio only
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      }
+    }
+
+    function createPeerConnection_() {
+      peerConnection = new RTCPeerConnection(ICE_SERVERS);
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      }
+
+      peerConnection.ontrack = (event) => {
+        remoteStream = event.streams[0];
+        if (currentCall?.callType === 'video') {
+          let remoteVideo = document.getElementById('remoteVideo');
+          if (!remoteVideo) {
+            const container = document.createElement('div');
+            container.className = 'video-container';
+            container.innerHTML = '<video id="remoteVideo" autoplay playsinline></video>';
+            document.getElementById('callScreen').prepend(container);
+          }
+          document.getElementById('remoteVideo').srcObject = remoteStream;
+        }
+        document.getElementById('callStatus').textContent = 'Connected';
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          const targetId = currentCall.callerId === String(currentUser.id)
+            ? currentCall.targetId
+            : currentCall.callerId;
+          socket.emit('signal', {
+            to: targetId,
+            signal: { type: 'candidate', candidate: event.candidate.candidate, sdpMid: event.candidate.sdpMid, sdpMLineIndex: event.candidate.sdpMLineIndex },
+          });
+        }
+      };
+
+      peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === 'connected') {
+          document.getElementById('callStatus').textContent = 'Connected';
+        } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+          hangup();
+        }
+      };
+    }
+
+    async function createOffer() {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      const targetId = currentCall.callerId === String(currentUser.id)
+        ? currentCall.targetId
+        : currentCall.callerId;
+      socket.emit('signal', { to: targetId, signal: { type: 'offer', sdp: offer.sdp } });
+    }
+
+    function toggleMute() {
+      if (!localStream) return;
+      const audioTrack = localStream.getAudioTracks()[0];
+      audioTrack.enabled = !audioTrack.enabled;
+      document.getElementById('muteBtn').classList.toggle('active', !audioTrack.enabled);
+    }
+
+    function hangup() {
+      if (peerConnection) { peerConnection.close(); peerConnection = null; }
+      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+      remoteStream = null;
+      currentCall = null;
+
+      // Remove remote video if exists
+      const rv = document.getElementById('remoteVideo');
+      if (rv) rv.parentElement.remove();
+
+      document.getElementById('callScreen').classList.remove('active');
+      document.getElementById('mainApp').style.display = '';
+      loadUsers();
+    }
+
+    // ========== Init ==========
+    (function init() {
+      const saved = localStorage.getItem('currentUser');
+      const token = localStorage.getItem('authToken');
+      if (saved && token) {
+        currentUser = JSON.parse(saved);
+        authToken = token;
+        startApp();
+      }
+    })();
+  </script>
+</body>
+</html>
