@@ -4,38 +4,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-ios:
+  ios:
     runs-on: macos-latest
 
     steps:
-
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
         channel: stable
 
-    - name: Flutter version
-      run: flutter --version
-
-    - name: Install dependencies
-      run: flutter pub get
-
-    - name: Build iOS no codesign
+    - name: Dependencies
       run: |
-        flutter build ios --release --no-codesign
+        flutter pub get
+        cd ios
+        pod install
+        cd ..
 
-    - name: Create IPA
+    - name: Build Flutter
       run: |
-        cd build/ios/iphoneos
+        flutter build ios --release --no-codesign --config-only
+
+    - name: Xcode build unsigned
+      run: |
+        xcodebuild \
+        -workspace ios/Runner.xcworkspace \
+        -scheme Runner \
+        -configuration Release \
+        -sdk iphoneos \
+        CODE_SIGN_IDENTITY="" \
+        CODE_SIGNING_REQUIRED=NO \
+        CODE_SIGNING_ALLOWED=NO
+
+    - name: Make IPA
+      run: |
         mkdir Payload
-        cp -r Runner.app Payload/
-        zip -qq -r unsigned.ipa Payload
+        cp -r build/ios/iphoneos/Runner.app Payload/
+        zip -r FlutterApp.ipa Payload
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
-        name: iOS-IPA
-        path: build/ios/iphoneos/unsigned.ipa
+        name: FlutterApp
+        path: FlutterApp.ipa
