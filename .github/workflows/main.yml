@@ -10,7 +10,8 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v5
+    - name: Checkout
+      uses: actions/checkout@v5
 
 
     - name: Setup Flutter
@@ -23,34 +24,34 @@ jobs:
       run: flutter doctor -v
 
 
-    - name: Get packages
+    - name: Create iOS folder if missing
+      run: flutter create --platforms=ios .
+
+
+    - name: Install dependencies
       run: flutter pub get
 
 
-    - name: Clean
-      run: flutter clean
-
-
-    - name: Install pods
+    - name: Install Pods
       run: |
         cd ios
         pod install
         cd ..
 
 
-    - name: Build iOS
+    - name: Build iOS app
       run: flutter build ios --release --no-codesign
 
 
     - name: Make IPA
       run: |
-        mkdir -p Payload
+        mkdir Payload
         cp -r build/ios/iphoneos/Runner.app Payload/
-        zip -qq -r app.ipa Payload
+        zip -r app.ipa Payload
 
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
-        name: iOS-IPA
+        name: AltStore-IPA
         path: app.ipa
